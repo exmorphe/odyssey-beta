@@ -105,7 +105,7 @@ func fetchExercise(client *Client) (*ServerResponse, error) {
 
 // exerciseID extracts the numeric id from the exercise response.
 func exerciseID(ex *ServerResponse) int {
-	v, ok := ex.raw["id"]
+	v, ok := ex.Field("id")
 	if !ok {
 		return 0
 	}
@@ -120,7 +120,7 @@ func exerciseID(ex *ServerResponse) int {
 
 // exerciseSteps extracts the steps slice from the exercise response.
 func exerciseSteps(ex *ServerResponse) ([]Step, error) {
-	v, ok := ex.raw["steps"]
+	v, ok := ex.Field("steps")
 	if !ok {
 		return nil, nil
 	}

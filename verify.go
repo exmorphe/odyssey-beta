@@ -66,6 +66,8 @@ func parseKinds(steps []Step) []string {
 }
 
 // containsKind reports whether the YAML content has a top-level kind: <target> line.
+// NOTE: Line-based heuristic — assumes single-doc YAML from server-generated manifests.
+// Will not work for multi-doc YAML, quoted values, or inline comments.
 func containsKind(content, target string) bool {
 	for _, line := range strings.Split(content, "\n") {
 		trimmed := strings.TrimSpace(line)

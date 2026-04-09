@@ -14,6 +14,8 @@ var errSlowDown = errors.New("slow_down")
 
 const clientID = "ody-cli"
 
+const loginTimeout = 15 * time.Minute
+
 func runLogin(serverURL string, configDir string, w io.Writer) error {
 	httpCli := &http.Client{Timeout: 30 * time.Second}
 
@@ -47,8 +49,12 @@ func runLogin(serverURL string, configDir string, w io.Writer) error {
 		interval = time.Second
 	}
 
+	deadline := time.Now().Add(loginTimeout)
 	for {
 		time.Sleep(interval)
+		if time.Now().After(deadline) {
+			return fmt.Errorf("login timed out after %v — try again", loginTimeout)
+		}
 
 		tokenResp, done, err := pollToken(httpCli, serverURL, deviceResp.DeviceCode)
 		if errors.Is(err, errSlowDown) {

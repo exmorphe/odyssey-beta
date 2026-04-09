@@ -14,6 +14,10 @@ func main() {
 	configDir := DefaultDir()
 
 	switch os.Args[1] {
+	case "help", "--help", "-h":
+		printUsage()
+		return
+
 	case "login":
 		serverURL := ""
 		if len(os.Args) >= 3 {
