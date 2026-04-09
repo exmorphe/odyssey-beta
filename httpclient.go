@@ -86,6 +86,7 @@ func (c *Client) refreshToken() error {
 	form := url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {c.cfg.RefreshToken},
+		"client_id":     {clientID},
 	}
 	resp, err := c.httpCli.PostForm(c.cfg.Server+"/oauth/token/", form)
 	if err != nil {

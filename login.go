@@ -2,12 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
 )
+
+var errSlowDown = errors.New("slow_down")
 
 const clientID = "ody-cli"
 
@@ -48,6 +51,10 @@ func runLogin(serverURL string, configDir string, w io.Writer) error {
 		time.Sleep(interval)
 
 		tokenResp, done, err := pollToken(httpCli, serverURL, deviceResp.DeviceCode)
+		if errors.Is(err, errSlowDown) {
+			interval += 5 * time.Second
+			continue
+		}
 		if err != nil {
 			return err
 		}
@@ -103,8 +110,10 @@ func pollToken(httpCli *http.Client, serverURL, deviceCode string) (*tokenRespon
 	json.Unmarshal(body, &errResp)
 
 	switch errResp.Error {
-	case "authorization_pending", "slow_down":
+	case "authorization_pending":
 		return nil, false, nil
+	case "slow_down":
+		return nil, false, errSlowDown
 	default:
 		return nil, false, fmt.Errorf("authorization failed: %s", errResp.Error)
 	}
