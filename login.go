@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -19,7 +20,7 @@ const loginTimeout = 15 * time.Minute
 func runLogin(serverURL string, configDir string, w io.Writer) error {
 	httpCli := &http.Client{Timeout: 30 * time.Second}
 
-	resp, err := httpCli.PostForm(serverURL+"/oauth/device/", url.Values{
+	resp, err := httpCli.PostForm(serverURL+"/oauth/device-authorization/", url.Values{
 		"client_id": {clientID},
 	})
 	if err != nil {
@@ -42,7 +43,11 @@ func runLogin(serverURL string, configDir string, w io.Writer) error {
 		return fmt.Errorf("decode device response: %w", err)
 	}
 
-	fmt.Fprintf(w, "Visit %s and enter code: %s\n", deviceResp.VerificationURI, deviceResp.UserCode)
+	verifyURL := deviceResp.VerificationURI
+	if verifyURL != "" && !strings.HasPrefix(verifyURL, "http") {
+		verifyURL = strings.TrimRight(serverURL, "/") + verifyURL
+	}
+	fmt.Fprintf(w, "Visit %s and enter code: %s\n", verifyURL, deviceResp.UserCode)
 
 	interval := time.Duration(deviceResp.Interval) * time.Second
 	if interval < time.Second {

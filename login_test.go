@@ -13,7 +13,7 @@ func TestLoginHappyPath(t *testing.T) {
 	pollCount := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/oauth/device/":
+		case "/oauth/device-authorization/":
 			json.NewEncoder(w).Encode(map[string]any{
 				"device_code":      "dev-abc",
 				"user_code":        "ABCD-1234",
@@ -86,7 +86,7 @@ func TestLoginDeviceEndpointError(t *testing.T) {
 func TestLoginTokenDenied(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/oauth/device/":
+		case "/oauth/device-authorization/":
 			json.NewEncoder(w).Encode(map[string]any{
 				"device_code":      "dev-abc",
 				"user_code":        "ABCD-1234",
