@@ -116,6 +116,26 @@ func extractMetadataName(content string) string {
 	return ""
 }
 
+// parseSnapshotKinds extracts the snapshot_kinds field from the exercise response.
+// Returns nil if the field is absent (backwards compat with older servers).
+func parseSnapshotKinds(ex *ServerResponse) []string {
+	v, ok := ex.Field("snapshot_kinds")
+	if !ok {
+		return nil
+	}
+	arr, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, item := range arr {
+		if s, ok := item.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // captureSnapshot runs kubectl get <kind> -n <ns> -o json for each namespace×kind
 // and merges all results into a single map keyed by "<kind>/<ns>".
 func captureSnapshot(kubectl Runner, namespaces, kinds []string) (map[string]any, error) {
@@ -156,6 +176,23 @@ func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 
 	namespaces := parseNamespaces(steps)
 	kinds := parseKinds(steps)
+
+	// Merge server-declared snapshot kinds (e.g., Endpoints) with
+	// manifest-derived kinds. The server knows which extra resource
+	// types verification needs; the CLI captures them without needing
+	// to understand why.
+	if extra := parseSnapshotKinds(ex); len(extra) > 0 {
+		seen := map[string]bool{}
+		for _, k := range kinds {
+			seen[k] = true
+		}
+		for _, k := range extra {
+			if !seen[k] {
+				kinds = append(kinds, k)
+				seen[k] = true
+			}
+		}
+	}
 
 	snapshot, err := captureSnapshot(kubectl, namespaces, kinds)
 	if err != nil {

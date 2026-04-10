@@ -200,6 +200,71 @@ func TestDisplayFaultResults_FullMaskedByKey(t *testing.T) {
 	}
 }
 
+func TestVerifyUsesSnapshotKinds(t *testing.T) {
+	var gotSnapshot map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{"href": "/exercise/99/", "method": "GET"},
+				},
+			})
+		case "/exercise/99/":
+			if r.Method == "POST" {
+				body, _ := io.ReadAll(r.Body)
+				json.Unmarshal(body, &gotSnapshot)
+				json.NewEncoder(w).Encode(map[string]any{
+					"_type": "verification", "status": "solved",
+					"faults": []map[string]any{
+						{"fault_key": "cd/zero_matches", "fault_ids": []string{}, "result": "PASS", "masking": "visible"},
+					},
+				})
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "exercise", "id": 99, "status": "active", "created_at": "2026-04-10T10:00:00Z",
+				"steps": []map[string]any{
+					{"op": "apply", "manifest": "ns.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+					{"op": "apply", "manifest": "svc.yaml", "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: web-app\n  namespace: exercise\n"},
+				},
+				"snapshot_kinds": []string{"Endpoints"},
+				"_links": map[string]any{"self": map[string]any{"href": "/exercise/99/", "method": "GET"}},
+			})
+		}
+	}))
+	defer srv.Close()
+
+	mock := &MockRunner{
+		OutputResults: map[string]string{
+			"get Service -n exercise -o json":   `{"items":[]}`,
+			"get Endpoints -n exercise -o json": `{"items":[{"kind":"Endpoints","metadata":{"name":"web-app"}}]}`,
+		},
+	}
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	var output strings.Builder
+
+	err := runVerify(client, mock, &output)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+
+	// Verify Endpoints were captured in snapshot
+	if _, ok := gotSnapshot["Endpoints/exercise"]; !ok {
+		t.Errorf("snapshot missing Endpoints/exercise, got keys: %v", keysOf(gotSnapshot))
+	}
+}
+
+func keysOf(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func TestVerifySolved(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
