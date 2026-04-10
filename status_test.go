@@ -27,8 +27,12 @@ func TestStatusHappyPath(t *testing.T) {
 				"id":         42,
 				"status":     "active",
 				"created_at": "2026-04-09T14:00:00Z",
-				"steps":      []any{},
-				"_links":     map[string]any{},
+				"steps": []map[string]any{
+					{"op": "apply", "manifest": "namespace.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+					{"op": "apply", "manifest": "deployment.yaml", "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: myapp\n  namespace: exercise\n"},
+					{"op": "apply", "manifest": "service.yaml", "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: mysvc\n  namespace: exercise\n"},
+				},
+				"_links": map[string]any{},
 			})
 		}
 	}))
@@ -50,8 +54,20 @@ func TestStatusHappyPath(t *testing.T) {
 	if !strings.Contains(out, "active") {
 		t.Errorf("missing status: %s", out)
 	}
-	if !strings.Contains(out, "2026-04-09") {
-		t.Errorf("missing created_at: %s", out)
+	if !strings.Contains(out, "09 Apr 2026 14:00 UTC") {
+		t.Errorf("missing formatted timestamp: %s", out)
+	}
+	if !strings.Contains(out, "Namespaces:") {
+		t.Errorf("missing Namespaces label: %s", out)
+	}
+	if !strings.Contains(out, "exercise") {
+		t.Errorf("missing namespace 'exercise': %s", out)
+	}
+	if !strings.Contains(out, "Resources:") {
+		t.Errorf("missing Resources label: %s", out)
+	}
+	if !strings.Contains(out, "Deployment") {
+		t.Errorf("missing resource kind 'Deployment': %s", out)
 	}
 }
 
