@@ -204,6 +204,13 @@ func runStart(client *Client, kubectl Runner, kind KindManager, w io.Writer) err
 	}
 
 	id := exerciseID(ex)
-	fmt.Fprintf(w, "Exercise #%d applied — %d steps\n", id, len(steps))
+	fmt.Fprintf(w, "Exercise #%d applied\n", id)
+	if ns := parseNamespaces(steps); len(ns) > 0 {
+		fmt.Fprintf(w, "  Namespaces: %s\n", strings.Join(ns, ", "))
+	}
+	if kinds := parseKinds(steps); len(kinds) > 0 {
+		fmt.Fprintf(w, "  Resources:  %s\n", strings.Join(kinds, ", "))
+	}
+	fmt.Fprintln(w, "Run 'ody verify' when you think you've fixed the faults.")
 	return nil
 }

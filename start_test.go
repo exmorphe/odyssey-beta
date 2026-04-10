@@ -101,8 +101,17 @@ func TestStartHappyPath(t *testing.T) {
 	if !strings.Contains(out, "Exercise #42 applied") {
 		t.Errorf("output = %q", out)
 	}
-	if !strings.Contains(out, "3 steps") {
-		t.Errorf("output missing step count: %q", out)
+	if strings.Contains(out, "steps") {
+		t.Errorf("should not show step count: %q", out)
+	}
+	if !strings.Contains(out, "Namespaces:") {
+		t.Errorf("missing namespaces: %q", out)
+	}
+	if !strings.Contains(out, "Resources:") {
+		t.Errorf("missing resources: %q", out)
+	}
+	if !strings.Contains(out, "ody verify") {
+		t.Errorf("missing verify hint: %q", out)
 	}
 }
 
