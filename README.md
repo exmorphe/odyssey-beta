@@ -34,9 +34,11 @@ namespaces, and apply the exercise steps.
 
 ```
 $ ody start
-Creating kind cluster "odyssey"...
-Deleting namespace exercise...
-Exercise #42 applied — 3 steps
+Creating kind cluster "odyssey"
+Exercise #42 applied
+  Namespaces: exercise
+  Resources:  Deployment, Service
+Run 'ody verify' when you think you've fixed the faults.
 ```
 
 ### `ody verify`
@@ -46,10 +48,10 @@ results with masking.
 
 ```
 $ ody verify
-✗ wrong_image/tag_mismatch [fault-07] — FAIL
+✗ wrong_image/tag_mismatch — FAIL
   symptom: image pull error
-✗ missing_labels/no_selector_match [fault-12] — FAIL (masked by wrong_image/tag_mismatch)
-  symptom: pods not ready — fix wrong_image first
+✗ missing_labels/no_selector_match — FAIL (masked by wrong_image/tag_mismatch)
+  symptom: pods not ready — fix wrong_image/tag_mismatch first
 
 0/2 faults resolved
 ```
@@ -61,8 +63,10 @@ Show the current exercise state.
 ```
 $ ody status
 Exercise #42
-  Status:  active
-  Created: 2026-04-09T14:00:00Z
+  Status:     active
+  Created:    09 Apr 2026 14:00 UTC
+  Namespaces: exercise
+  Resources:  Deployment, Service
 ```
 
 ## Requirements
