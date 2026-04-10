@@ -188,25 +188,29 @@ func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 
 // displayFaultResults prints per-fault results and a summary line.
 func displayFaultResults(w io.Writer, vr verificationResponse) {
+	// Build a map of fault_key → result so we can check blocker status.
+	resultMap := make(map[string]string, len(vr.Faults))
+	for _, f := range vr.Faults {
+		resultMap[f.FaultKey] = f.Result
+	}
+
 	passed := 0
 	for _, f := range vr.Faults {
 		if f.Result == "PASS" {
 			passed++
-			fmt.Fprintf(w, "✓ %s [%s] — PASS\n", f.FaultKey, strings.Join(f.FaultIDs, ", "))
+			fmt.Fprintf(w, "✓ %s — PASS\n", f.FaultKey)
 		} else {
-			line := fmt.Sprintf("✗ %s [%s] — FAIL", f.FaultKey, strings.Join(f.FaultIDs, ", "))
-			if f.Masking == "masked" && f.MaskedBy != nil {
+			line := fmt.Sprintf("✗ %s — FAIL", f.FaultKey)
+			// Only show masking when the blocker is still failing.
+			showMasking := f.Masking == "masked" && f.MaskedBy != nil && resultMap[*f.MaskedBy] != "PASS"
+			if showMasking {
 				line += fmt.Sprintf(" (masked by %s)", *f.MaskedBy)
 			}
 			fmt.Fprintln(w, line)
 			if f.Symptom != "" {
 				symptom := f.Symptom
-				if f.Masking == "masked" && f.MaskedBy != nil {
-					blocker := *f.MaskedBy
-					if idx := strings.Index(blocker, "/"); idx >= 0 {
-						blocker = blocker[:idx]
-					}
-					symptom += fmt.Sprintf(" — fix %s first", blocker)
+				if showMasking {
+					symptom += fmt.Sprintf(" — fix %s first", *f.MaskedBy)
 				}
 				fmt.Fprintf(w, "  symptom: %s\n", symptom)
 			}

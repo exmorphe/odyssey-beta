@@ -109,7 +109,7 @@ func TestVerifyHappyPath(t *testing.T) {
 	if !strings.Contains(out, "FAIL") {
 		t.Errorf("missing FAIL: %s", out)
 	}
-	if !strings.Contains(out, "masked by wrong_image") {
+	if !strings.Contains(out, "masked by wrong_image/tag_mismatch") {
 		t.Errorf("missing masking: %s", out)
 	}
 	if !strings.Contains(out, "0/2 faults resolved") {
@@ -122,6 +122,81 @@ func TestVerifyHappyPath(t *testing.T) {
 	}
 	if _, ok := gotSnapshot["Deployment/exercise"]; !ok {
 		t.Errorf("snapshot missing Deployment/exercise key, got keys: %v", gotSnapshot)
+	}
+}
+
+func TestDisplayFaultResults_MaskingSuppressedWhenBlockerPasses(t *testing.T) {
+	vr := verificationResponse{
+		Status: "failing",
+		Faults: []faultResult{
+			{FaultKey: "admission_gate/fails_quota", Result: "PASS", Masking: "visible"},
+			{
+				FaultKey: "resolution/target_missing", Result: "FAIL",
+				Masking: "masked", MaskedBy: strPtr("admission_gate/fails_quota"),
+				Symptom: "create_container_config_error",
+			},
+		},
+	}
+	var buf strings.Builder
+	displayFaultResults(&buf, vr)
+	out := buf.String()
+
+	if strings.Contains(out, "masked by") {
+		t.Errorf("should not show masking when blocker passes:\n%s", out)
+	}
+	if strings.Contains(out, "fix ") {
+		t.Errorf("should not show 'fix X first' when blocker passes:\n%s", out)
+	}
+	if !strings.Contains(out, "resolution/target_missing") {
+		t.Errorf("missing fault key:\n%s", out)
+	}
+	if !strings.Contains(out, "1/2 faults resolved") {
+		t.Errorf("wrong summary:\n%s", out)
+	}
+}
+
+func strPtr(s string) *string { return &s }
+
+func TestDisplayFaultResults_NoFaultIdsBrackets(t *testing.T) {
+	vr := verificationResponse{
+		Status: "failing",
+		Faults: []faultResult{
+			{FaultKey: "wrong_image/tag_mismatch", FaultIDs: []string{}, Result: "FAIL", Masking: "visible", Symptom: "image pull error"},
+		},
+	}
+	var buf strings.Builder
+	displayFaultResults(&buf, vr)
+	out := buf.String()
+
+	if strings.Contains(out, "[]") {
+		t.Errorf("should not show empty brackets:\n%s", out)
+	}
+	if !strings.Contains(out, "wrong_image/tag_mismatch — FAIL") {
+		t.Errorf("missing fault line:\n%s", out)
+	}
+}
+
+func TestDisplayFaultResults_FullMaskedByKey(t *testing.T) {
+	vr := verificationResponse{
+		Status: "failing",
+		Faults: []faultResult{
+			{FaultKey: "admission_gate/fails_quota", Result: "FAIL", Masking: "visible", Symptom: "api_rejection"},
+			{
+				FaultKey: "resolution/target_missing", Result: "FAIL",
+				Masking: "masked", MaskedBy: strPtr("admission_gate/fails_quota"),
+				Symptom: "create_container_config_error",
+			},
+		},
+	}
+	var buf strings.Builder
+	displayFaultResults(&buf, vr)
+	out := buf.String()
+
+	if !strings.Contains(out, "masked by admission_gate/fails_quota") {
+		t.Errorf("should show full masked_by key:\n%s", out)
+	}
+	if !strings.Contains(out, "fix admission_gate/fails_quota first") {
+		t.Errorf("should show full key in fix hint:\n%s", out)
 	}
 }
 
