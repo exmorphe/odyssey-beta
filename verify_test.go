@@ -265,6 +265,34 @@ func keysOf(m map[string]any) []string {
 	return keys
 }
 
+func TestDisplayFaultResults_ActionHint(t *testing.T) {
+	vr := verificationResponse{
+		Status: "failing",
+		Faults: []faultResult{
+			{FaultKey: "cron/schedule_wrong", Result: "FAIL", Masking: "visible", Action: "trigger_job"},
+			{FaultKey: "resolution/target_missing", Result: "FAIL", Masking: "visible"},
+		},
+	}
+	var buf strings.Builder
+	displayFaultResults(&buf, vr)
+	out := buf.String()
+
+	if !strings.Contains(out, "action: trigger_job") {
+		t.Errorf("should show action hint:\n%s", out)
+	}
+	// Second fault has no action — should not print an action line for it
+	lines := strings.Split(out, "\n")
+	actionCount := 0
+	for _, l := range lines {
+		if strings.Contains(l, "action:") {
+			actionCount++
+		}
+	}
+	if actionCount != 1 {
+		t.Errorf("expected 1 action line, got %d:\n%s", actionCount, out)
+	}
+}
+
 func TestVerifySolved(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
