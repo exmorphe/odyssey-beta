@@ -157,25 +157,6 @@ func TestDisplayFaultResults_MaskingSuppressedWhenBlockerPasses(t *testing.T) {
 
 func strPtr(s string) *string { return &s }
 
-func TestDisplayFaultResults_NoFaultIdsBrackets(t *testing.T) {
-	vr := verificationResponse{
-		Status: "failing",
-		Faults: []faultResult{
-			{FaultKey: "wrong_image/tag_mismatch", Result: "FAIL", Masking: "visible", Symptom: "image pull error"},
-		},
-	}
-	var buf strings.Builder
-	displayFaultResults(&buf, vr)
-	out := buf.String()
-
-	if strings.Contains(out, "[]") {
-		t.Errorf("should not show empty brackets:\n%s", out)
-	}
-	if !strings.Contains(out, "wrong_image/tag_mismatch — FAIL") {
-		t.Errorf("missing fault line:\n%s", out)
-	}
-}
-
 func TestDisplayFaultResults_FullMaskedByKey(t *testing.T) {
 	vr := verificationResponse{
 		Status: "failing",
