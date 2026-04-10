@@ -70,8 +70,8 @@ func TestVerifyHappyPath(t *testing.T) {
 						{"check": "image_check", "target": "deploy/exercise/myapp", "result": "FAIL"},
 					},
 					"faults": []map[string]any{
-						{"fault_key": "wrong_image/tag_mismatch", "fault_ids": []string{"fault-07"}, "result": "FAIL", "masking": "visible", "masked_by": nil, "symptom": "image pull error"},
-						{"fault_key": "missing_labels/no_selector_match", "fault_ids": []string{"fault-12"}, "result": "FAIL", "masking": "masked", "masked_by": "wrong_image/tag_mismatch", "symptom": "pods not ready"},
+						{"fault_key": "wrong_image/tag_mismatch", "result": "FAIL", "masking": "visible", "masked_by": nil, "symptom": "image pull error"},
+						{"fault_key": "missing_labels/no_selector_match", "result": "FAIL", "masking": "masked", "masked_by": "wrong_image/tag_mismatch", "symptom": "pods not ready"},
 					},
 				})
 				return
@@ -161,7 +161,7 @@ func TestDisplayFaultResults_NoFaultIdsBrackets(t *testing.T) {
 	vr := verificationResponse{
 		Status: "failing",
 		Faults: []faultResult{
-			{FaultKey: "wrong_image/tag_mismatch", FaultIDs: []string{}, Result: "FAIL", Masking: "visible", Symptom: "image pull error"},
+			{FaultKey: "wrong_image/tag_mismatch", Result: "FAIL", Masking: "visible", Symptom: "image pull error"},
 		},
 	}
 	var buf strings.Builder
@@ -218,7 +218,7 @@ func TestVerifyUsesSnapshotKinds(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]any{
 					"_type": "verification", "status": "solved",
 					"faults": []map[string]any{
-						{"fault_key": "cd/zero_matches", "fault_ids": []string{}, "result": "PASS", "masking": "visible"},
+						{"fault_key": "cd/zero_matches", "result": "PASS", "masking": "visible"},
 					},
 				})
 				return
@@ -307,7 +307,7 @@ func TestVerifySolved(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]any{
 					"_type": "verification", "status": "solved", "checks": []map[string]any{},
 					"faults": []map[string]any{
-						{"fault_key": "wrong_image/tag_mismatch", "fault_ids": []string{"fault-07"}, "result": "PASS", "masking": "visible", "masked_by": nil},
+						{"fault_key": "wrong_image/tag_mismatch", "result": "PASS", "masking": "visible", "masked_by": nil},
 					},
 				})
 				return

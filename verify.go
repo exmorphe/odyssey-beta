@@ -11,13 +11,12 @@ const snapshotMediaType = "application/vnd.odyssey.cluster-snapshot+json"
 
 // faultResult holds the verification result for a single fault.
 type faultResult struct {
-	FaultKey string   `json:"fault_key"`
-	FaultIDs []string `json:"fault_ids"`
-	Result   string   `json:"result"`
-	Masking  string   `json:"masking"`
-	MaskedBy *string  `json:"masked_by"`
-	Symptom  string   `json:"symptom,omitempty"`
-	Action   string   `json:"action,omitempty"`
+	FaultKey string  `json:"fault_key"`
+	Result   string  `json:"result"`
+	Masking  string  `json:"masking"`
+	MaskedBy *string `json:"masked_by"`
+	Symptom  string  `json:"symptom,omitempty"`
+	Action   string  `json:"action,omitempty"`
 }
 
 // verificationResponse is the server's response to a snapshot POST.
