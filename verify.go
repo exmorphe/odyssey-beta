@@ -17,6 +17,7 @@ type faultResult struct {
 	Masking  string   `json:"masking"`
 	MaskedBy *string  `json:"masked_by"`
 	Symptom  string   `json:"symptom,omitempty"`
+	Action   string   `json:"action,omitempty"`
 }
 
 // verificationResponse is the server's response to a snapshot POST.
@@ -250,6 +251,9 @@ func displayFaultResults(w io.Writer, vr verificationResponse) {
 					symptom += fmt.Sprintf(" — fix %s first", *f.MaskedBy)
 				}
 				fmt.Fprintf(w, "  symptom: %s\n", symptom)
+			}
+			if f.Action != "" {
+				fmt.Fprintf(w, "  action: %s\n", f.Action)
 			}
 		}
 	}
