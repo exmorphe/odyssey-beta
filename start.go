@@ -64,11 +64,13 @@ func (r *RealKindManager) CreateCluster(name string) error {
 // MockKindManager is a test double for KindManager.
 type MockKindManager struct {
 	Exists       bool
+	ExistsCalled bool
 	CreateCalled bool
 	CreateErr    error
 }
 
 func (m *MockKindManager) ClusterExists(name string) (bool, error) {
+	m.ExistsCalled = true
 	return m.Exists, nil
 }
 

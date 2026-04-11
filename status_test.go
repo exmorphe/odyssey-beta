@@ -92,6 +92,9 @@ func TestStatusNoActiveExercise(t *testing.T) {
 	if !strings.Contains(output.String(), "No active exercise") {
 		t.Errorf("output = %q", output.String())
 	}
+	if kind.ExistsCalled {
+		t.Error("ClusterExists must not be called when there is no active exercise")
+	}
 }
 
 func TestStatusSolvedExercise(t *testing.T) {
