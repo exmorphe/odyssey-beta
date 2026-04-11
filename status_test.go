@@ -40,9 +40,10 @@ func TestStatusHappyPath(t *testing.T) {
 
 	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
 	client := NewClient(cfg, t.TempDir())
+	kind := &MockKindManager{Exists: true}
 	var output strings.Builder
 
-	err := runStatus(client, &output)
+	err := runStatus(client, kind, &output)
 	if err != nil {
 		t.Fatalf("status: %v", err)
 	}
@@ -81,9 +82,10 @@ func TestStatusNoActiveExercise(t *testing.T) {
 
 	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
 	client := NewClient(cfg, t.TempDir())
+	kind := &MockKindManager{Exists: false}
 	var output strings.Builder
 
-	err := runStatus(client, &output)
+	err := runStatus(client, kind, &output)
 	if err != nil {
 		t.Fatalf("status: %v", err)
 	}
@@ -119,13 +121,100 @@ func TestStatusSolvedExercise(t *testing.T) {
 
 	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
 	client := NewClient(cfg, t.TempDir())
+	kind := &MockKindManager{Exists: true}
 	var output strings.Builder
 
-	err := runStatus(client, &output)
+	err := runStatus(client, kind, &output)
 	if err != nil {
 		t.Fatalf("status: %v", err)
 	}
 	if !strings.Contains(output.String(), "solved") {
 		t.Errorf("output = %q", output.String())
+	}
+}
+
+func TestStatusShowsClusterRunning(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{
+						"href": "/exercise/7/", "method": "GET",
+					},
+				},
+			})
+		case "/exercise/7/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type":      "exercise",
+				"id":         7,
+				"status":     "active",
+				"created_at": "2026-04-10T09:00:00Z",
+				"steps":      []any{},
+				"_links":     map[string]any{},
+			})
+		}
+	}))
+	defer srv.Close()
+
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	kind := &MockKindManager{Exists: true}
+	var output strings.Builder
+
+	err := runStatus(client, kind, &output)
+	if err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	out := output.String()
+	if !strings.Contains(out, "Local cluster:") {
+		t.Errorf("missing Local cluster line: %s", out)
+	}
+	if !strings.Contains(out, "running") {
+		t.Errorf("expected 'running' in output: %s", out)
+	}
+}
+
+func TestStatusShowsStartHintWhenClusterMissing(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{
+						"href": "/exercise/7/", "method": "GET",
+					},
+				},
+			})
+		case "/exercise/7/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type":      "exercise",
+				"id":         7,
+				"status":     "active",
+				"created_at": "2026-04-10T09:00:00Z",
+				"steps":      []any{},
+				"_links":     map[string]any{},
+			})
+		}
+	}))
+	defer srv.Close()
+
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	kind := &MockKindManager{Exists: false}
+	var output strings.Builder
+
+	err := runStatus(client, kind, &output)
+	if err != nil {
+		t.Fatalf("status: %v", err)
+	}
+	out := output.String()
+	if !strings.Contains(out, "Local cluster:") {
+		t.Errorf("missing Local cluster line: %s", out)
+	}
+	if !strings.Contains(out, "ody start") {
+		t.Errorf("expected 'ody start' hint in output: %s", out)
 	}
 }

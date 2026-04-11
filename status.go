@@ -8,7 +8,7 @@ import (
 )
 
 // runStatus displays the current exercise state.
-func runStatus(client *Client, w io.Writer) error {
+func runStatus(client *Client, kind KindManager, w io.Writer) error {
 	ex, err := fetchExercise(client)
 	if err != nil {
 		return err
@@ -41,6 +41,16 @@ func runStatus(client *Client, w io.Writer) error {
 		if kinds := parseKinds(steps); len(kinds) > 0 {
 			fmt.Fprintf(w, "  Resources:  %s\n", strings.Join(kinds, ", "))
 		}
+	}
+
+	exists, err := kind.ClusterExists(clusterName)
+	if err != nil {
+		return fmt.Errorf("check cluster: %w", err)
+	}
+	if exists {
+		fmt.Fprintf(w, "  Local cluster: running\n")
+	} else {
+		fmt.Fprintf(w, "  Local cluster: not started — run 'ody start'\n")
 	}
 
 	return nil
