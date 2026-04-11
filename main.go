@@ -70,6 +70,17 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "clue":
+		client, err := loadClient(configDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		if err := runClue(client, &KubectlRunner{}, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
 		printUsage()
@@ -96,4 +107,5 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  start                Fetch and apply the active exercise")
 	fmt.Fprintln(os.Stderr, "  verify               Capture cluster state and check faults")
 	fmt.Fprintln(os.Stderr, "  status               Show current exercise state")
+	fmt.Fprintln(os.Stderr, "  clue                 Show diagnostic clue for the active exercise")
 }
