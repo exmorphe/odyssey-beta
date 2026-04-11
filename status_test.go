@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -136,8 +137,10 @@ func TestStatusSolvedExercise(t *testing.T) {
 	}
 }
 
-func TestStatusShowsClusterRunning(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// fakeMinimalExerciseServer serves a root with a single active exercise (no steps).
+func fakeMinimalExerciseServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/":
 			json.NewEncoder(w).Encode(map[string]any{
@@ -159,6 +162,10 @@ func TestStatusShowsClusterRunning(t *testing.T) {
 			})
 		}
 	}))
+}
+
+func TestStatusShowsClusterRunning(t *testing.T) {
+	srv := fakeMinimalExerciseServer(t)
 	defer srv.Close()
 
 	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
@@ -180,28 +187,7 @@ func TestStatusShowsClusterRunning(t *testing.T) {
 }
 
 func TestStatusShowsStartHintWhenClusterMissing(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/":
-			json.NewEncoder(w).Encode(map[string]any{
-				"_type": "root",
-				"_links": map[string]any{
-					"active_exercise": map[string]any{
-						"href": "/exercise/7/", "method": "GET",
-					},
-				},
-			})
-		case "/exercise/7/":
-			json.NewEncoder(w).Encode(map[string]any{
-				"_type":      "exercise",
-				"id":         7,
-				"status":     "active",
-				"created_at": "2026-04-10T09:00:00Z",
-				"steps":      []any{},
-				"_links":     map[string]any{},
-			})
-		}
-	}))
+	srv := fakeMinimalExerciseServer(t)
 	defer srv.Close()
 
 	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
@@ -219,5 +205,23 @@ func TestStatusShowsStartHintWhenClusterMissing(t *testing.T) {
 	}
 	if !strings.Contains(out, "ody start") {
 		t.Errorf("expected 'ody start' hint in output: %s", out)
+	}
+}
+
+func TestStatusClusterExistsError(t *testing.T) {
+	srv := fakeMinimalExerciseServer(t)
+	defer srv.Close()
+
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	kind := &MockKindManager{ExistsErr: errors.New("kind not found")}
+	var output strings.Builder
+
+	err := runStatus(client, kind, &output)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "check cluster") {
+		t.Errorf("error = %q, want 'check cluster' prefix", err.Error())
 	}
 }
