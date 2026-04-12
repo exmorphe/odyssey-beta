@@ -142,6 +142,22 @@ func TestClientRefreshFailure(t *testing.T) {
 	}
 }
 
+func TestDoRequest_SendsBetaKeyHeader(t *testing.T) {
+	var gotHeader string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeader = r.Header.Get("X-Beta-Key")
+		w.WriteHeader(200)
+	}))
+	defer srv.Close()
+
+	client := NewClient(Config{Server: srv.URL, AccessToken: "tok", ExpiresAt: time.Now().Add(time.Hour)}, t.TempDir())
+	_, _ = client.Get("/test", "")
+
+	if gotHeader != betaKey {
+		t.Errorf("X-Beta-Key = %q, want %q", gotHeader, betaKey)
+	}
+}
+
 func TestClientHTTPError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)

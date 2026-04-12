@@ -20,7 +20,7 @@ const loginTimeout = 15 * time.Minute
 func runLogin(serverURL string, configDir string, w io.Writer) error {
 	httpCli := &http.Client{Timeout: 30 * time.Second}
 
-	resp, err := httpCli.PostForm(serverURL+"/oauth/device-authorization/", url.Values{
+	resp, err := betaPostForm(httpCli, serverURL+"/oauth/device-authorization/", url.Values{
 		"client_id": {clientID},
 	})
 	if err != nil {
@@ -95,7 +95,7 @@ type tokenResponse struct {
 }
 
 func pollToken(httpCli *http.Client, serverURL, deviceCode string) (*tokenResponse, bool, error) {
-	resp, err := httpCli.PostForm(serverURL+"/oauth/token/", url.Values{
+	resp, err := betaPostForm(httpCli, serverURL+"/oauth/token/", url.Values{
 		"grant_type":  {"urn:ietf:params:oauth:grant-type:device_code"},
 		"device_code": {deviceCode},
 		"client_id":   {clientID},
@@ -128,4 +128,15 @@ func pollToken(httpCli *http.Client, serverURL, deviceCode string) (*tokenRespon
 	default:
 		return nil, false, fmt.Errorf("authorization failed: %s", errResp.Error)
 	}
+}
+
+// betaPostForm is like http.Client.PostForm but adds the X-Beta-Key header.
+func betaPostForm(httpCli *http.Client, url string, data url.Values) (*http.Response, error) {
+	req, err := http.NewRequest("POST", url, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("X-Beta-Key", betaKey)
+	return httpCli.Do(req)
 }

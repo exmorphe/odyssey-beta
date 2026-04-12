@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+// betaKey is sent as X-Beta-Key on every request to pass the Caddy gate.
+// Hardcoded because the odyssey-beta repo is private.
+const betaKey = "odyssey-beta-2026"
+
 // Client is an HTTP client that handles OAuth tokens and content negotiation.
 type Client struct {
 	cfg     Config
@@ -57,6 +61,8 @@ func (c *Client) Post(path, contentType string, body []byte) ([]byte, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+	req.Header.Set("X-Beta-Key", betaKey)
+
 	resp, err := c.httpCli.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request %s %s: %w", req.Method, req.URL.Path, err)
@@ -89,7 +95,7 @@ func (c *Client) refreshToken() error {
 		"refresh_token": {c.cfg.RefreshToken},
 		"client_id":     {clientID},
 	}
-	resp, err := c.httpCli.PostForm(c.cfg.Server+"/oauth/token/", form)
+	resp, err := betaPostForm(c.httpCli, c.cfg.Server+"/oauth/token/", form)
 	if err != nil {
 		return fmt.Errorf("token refresh request: %w", err)
 	}
