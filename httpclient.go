@@ -11,8 +11,9 @@ import (
 )
 
 // betaKey is sent as X-Beta-Key on every request to pass the Caddy gate.
-// Hardcoded because the odyssey-beta repo is private.
-const betaKey = "odyssey-beta-2026"
+// Hardcoded because the odyssey-beta repo is private. Beta users copy this
+// value for browser access too (via X-Beta-Key header or basic_auth).
+const betaKey = "wanmem-sYrhyh-7hytne"
 
 // Client is an HTTP client that handles OAuth tokens and content negotiation.
 type Client struct {
