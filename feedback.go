@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 )
 
 const feedbackMediaType = "application/vnd.odyssey.feedback+json"
@@ -54,17 +55,19 @@ func resolveExercise(client *Client, explicitID int) (*ServerResponse, error) {
 }
 
 // parseFeedbackArgs extracts the message and optional --exercise flag.
+// Non-flag positional args are joined with spaces so that
+// `ody feedback this is great` works the same as `ody feedback "this is great"`.
 func parseFeedbackArgs(args []string) (message string, exerciseID int) {
+	var parts []string
 	for i := 0; i < len(args); i++ {
 		if args[i] == "--exercise" && i+1 < len(args) {
 			fmt.Sscanf(args[i+1], "%d", &exerciseID)
 			i++
 			continue
 		}
-		if message == "" {
-			message = args[i]
-		}
+		parts = append(parts, args[i])
 	}
+	message = strings.Join(parts, " ")
 	return
 }
 

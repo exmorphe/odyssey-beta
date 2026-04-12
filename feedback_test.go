@@ -167,4 +167,14 @@ func TestParseFeedbackArgs(t *testing.T) {
 	if msg != "my feedback" || id != 42 {
 		t.Errorf("flag after msg: msg=%q id=%d", msg, id)
 	}
+
+	msg, id = parseFeedbackArgs([]string{"this", "is", "great"})
+	if msg != "this is great" || id != 0 {
+		t.Errorf("unquoted words: msg=%q id=%d", msg, id)
+	}
+
+	msg, id = parseFeedbackArgs([]string{"this", "is", "--exercise", "7", "great"})
+	if msg != "this is great" || id != 7 {
+		t.Errorf("words with flag: msg=%q id=%d", msg, id)
+	}
 }
