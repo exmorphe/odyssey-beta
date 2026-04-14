@@ -6,6 +6,7 @@ import (
 	"io"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 const (
@@ -150,6 +151,23 @@ func applyStep(kubectl Runner, step Step) error {
 	}
 }
 
+// waitForDefaultSA polls until the default ServiceAccount exists in the
+// given namespace, or until timeout. Kubernetes creates it asynchronously
+// after namespace creation.
+func waitForDefaultSA(kubectl Runner, namespace string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		_, err := kubectl.Output([]string{
+			"get", "serviceaccount", "default", "-n", namespace,
+		})
+		if err == nil {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return fmt.Errorf("timed out waiting for default ServiceAccount in namespace %s", namespace)
+}
+
 // cleanNamespaces deletes all non-internal namespaces from the cluster.
 func cleanNamespaces(kubectl Runner, w io.Writer) error {
 	out, err := kubectl.Output([]string{"get", "namespaces", "-o", "jsonpath={.items[*].metadata.name}"})
@@ -203,6 +221,16 @@ func runStart(client *Client, kubectl Runner, kind KindManager, w io.Writer) err
 	for i, step := range steps {
 		if err := applyStep(kubectl, step); err != nil {
 			return fmt.Errorf("step %d (%s): %w", i+1, step.Op, err)
+		}
+		// After creating a namespace, wait for the default ServiceAccount
+		// to be provisioned before applying subsequent resources.
+		if step.Op == "apply" && containsKind(step.Content, "Namespace") {
+			ns := extractMetadataName(step.Content)
+			if ns != "" {
+				if err := waitForDefaultSA(kubectl, ns, 30*time.Second); err != nil {
+					return fmt.Errorf("step %d: %w", i+1, err)
+				}
+			}
 		}
 	}
 

@@ -51,7 +51,8 @@ func TestStartHappyPath(t *testing.T) {
 	defer srv.Close()
 	mock := &MockRunner{
 		OutputResults: map[string]string{
-			"get namespaces -o jsonpath={.items[*].metadata.name}": "default exercise kube-system kube-public kube-node-lease local-path-storage",
+			"get namespaces -o jsonpath={.items[*].metadata.name}":  "default exercise kube-system kube-public kube-node-lease local-path-storage",
+			"get serviceaccount default -n exercise": `{"metadata":{"name":"default"}}`,
 		},
 	}
 	kind := &MockKindManager{Exists: true}
@@ -140,7 +141,8 @@ func TestStartCreatesKindCluster(t *testing.T) {
 	defer srv.Close()
 	mock := &MockRunner{
 		OutputResults: map[string]string{
-			"get namespaces -o jsonpath={.items[*].metadata.name}": "default kube-system kube-public kube-node-lease local-path-storage",
+			"get namespaces -o jsonpath={.items[*].metadata.name}":  "default kube-system kube-public kube-node-lease local-path-storage",
+			"get serviceaccount default -n exercise": `{"metadata":{"name":"default"}}`,
 		},
 	}
 	kind := &MockKindManager{Exists: false}
