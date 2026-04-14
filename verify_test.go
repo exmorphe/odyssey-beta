@@ -322,3 +322,40 @@ func TestVerifySolved(t *testing.T) {
 		t.Errorf("output = %q", output.String())
 	}
 }
+
+func TestDisplayFaultResults_DebriefOnSolve(t *testing.T) {
+	vr := verificationResponse{
+		Status:  "solved",
+		Debrief: "Repair chain: constraint_placement/no_matching_node → feedback_loop/liveness_action (depth 2)",
+		Faults: []faultResult{
+			{FaultKey: "constraint_placement/no_matching_node", Result: "PASS", Masking: "visible"},
+			{FaultKey: "feedback_loop/liveness_action", Result: "PASS", Masking: "visible"},
+		},
+	}
+	var buf strings.Builder
+	displayFaultResults(&buf, vr)
+	out := buf.String()
+
+	if !strings.Contains(out, "Solved!") {
+		t.Errorf("missing Solved!:\n%s", out)
+	}
+	if !strings.Contains(out, "Repair chain:") {
+		t.Errorf("missing debrief:\n%s", out)
+	}
+}
+
+func TestDisplayFaultResults_NoDebriefWhenEmpty(t *testing.T) {
+	vr := verificationResponse{
+		Status: "solved",
+		Faults: []faultResult{
+			{FaultKey: "resolution/target_missing", Result: "PASS", Masking: "visible"},
+		},
+	}
+	var buf strings.Builder
+	displayFaultResults(&buf, vr)
+	out := buf.String()
+
+	if strings.Contains(out, "Repair chain") || strings.Contains(out, "Independent faults") {
+		t.Errorf("should not show debrief for single-fault:\n%s", out)
+	}
+}

@@ -21,9 +21,10 @@ type faultResult struct {
 
 // verificationResponse is the server's response to a snapshot POST.
 type verificationResponse struct {
-	Type   string        `json:"_type"`
-	Status string        `json:"status"`
-	Faults []faultResult `json:"faults"`
+	Type    string        `json:"_type"`
+	Status  string        `json:"status"`
+	Faults  []faultResult `json:"faults"`
+	Debrief string        `json:"debrief,omitempty"`
 }
 
 // parseNamespaces extracts namespace names from apply steps whose content
@@ -261,5 +262,8 @@ func displayFaultResults(w io.Writer, vr verificationResponse) {
 	fmt.Fprintf(w, "\n%d/%d faults resolved\n", passed, total)
 	if vr.Status == "solved" {
 		fmt.Fprintln(w, "Solved!")
+		if vr.Debrief != "" {
+			fmt.Fprintln(w, vr.Debrief)
+		}
 	}
 }
