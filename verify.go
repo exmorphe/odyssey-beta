@@ -188,9 +188,10 @@ func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 		return err
 	}
 
+	namespaces := parseNamespaces(steps)
+
 	// Nonce guard: check that the cluster has this exercise's manifests applied.
 	if nonce := exerciseApplyNonce(ex); nonce != "" {
-		namespaces := parseNamespaces(steps)
 		ns := "exercise"
 		if len(namespaces) > 0 {
 			ns = namespaces[0]
@@ -209,7 +210,6 @@ func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 		}
 	}
 
-	namespaces := parseNamespaces(steps)
 	kinds := parseKinds(steps)
 
 	// Merge server-declared snapshot kinds (e.g., Endpoints) with
