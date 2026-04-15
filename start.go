@@ -178,7 +178,7 @@ func waitForCondition(kubectl Runner, step Step) error {
 		}
 		time.Sleep(1 * time.Second)
 	}
-	return fmt.Errorf("timed out waiting for %s (%ds)", step.Description, step.TimeoutSeconds)
+	return fmt.Errorf("timed out waiting for %s (%ds)", step.Description, int(timeout.Seconds()))
 }
 
 // cleanNamespaces deletes all non-internal namespaces from the cluster.
