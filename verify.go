@@ -201,12 +201,10 @@ func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 			"-o", `jsonpath={.metadata.annotations.odyssey\.dev/apply-nonce}`,
 		})
 		if err != nil {
-			fmt.Fprintf(w, "Error: namespace '%s' not found. Run 'ody start' first.\n", ns)
-			return nil
+			return fmt.Errorf("namespace '%s' not found — run 'ody start' first", ns)
 		}
 		if strings.TrimSpace(clusterNonce) != nonce {
-			fmt.Fprintln(w, "Error: cluster state does not match active exercise. Run 'ody start' to apply.")
-			return nil
+			return fmt.Errorf("cluster state does not match active exercise — run 'ody start' to apply")
 		}
 	}
 

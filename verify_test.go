@@ -397,13 +397,11 @@ func TestVerifyNonceMismatch(t *testing.T) {
 	var output strings.Builder
 
 	err := runVerify(client, mock, &output)
-	if err != nil {
-		t.Fatalf("verify: %v", err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
-
-	out := output.String()
-	if !strings.Contains(out, "does not match") {
-		t.Errorf("expected mismatch error, got: %q", out)
+	if !strings.Contains(err.Error(), "does not match") {
+		t.Errorf("expected mismatch error, got: %v", err)
 	}
 }
 
@@ -440,13 +438,11 @@ func TestVerifyNamespaceNotFound(t *testing.T) {
 	var output strings.Builder
 
 	err := runVerify(client, mock, &output)
-	if err != nil {
-		t.Fatalf("verify: %v", err)
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
-
-	out := output.String()
-	if !strings.Contains(out, "Run 'ody start' first") {
-		t.Errorf("expected namespace-not-found error, got: %q", out)
+	if !strings.Contains(err.Error(), "ody start") {
+		t.Errorf("expected namespace-not-found error, got: %v", err)
 	}
 }
 
