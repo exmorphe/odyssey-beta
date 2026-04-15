@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -357,5 +358,150 @@ func TestDisplayFaultResults_NoDebriefWhenEmpty(t *testing.T) {
 
 	if strings.Contains(out, "Repair chain") || strings.Contains(out, "Independent faults") {
 		t.Errorf("should not show debrief for single-fault:\n%s", out)
+	}
+}
+
+func TestVerifyNonceMismatch(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{"href": "/exercise/42/", "method": "GET"},
+				},
+			})
+		case "/exercise/42/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "exercise", "id": 42, "status": "active", "created_at": "2026-04-09T14:00:00Z",
+				"apply_nonce": "server-nonce1",
+				"steps": []map[string]any{
+					{"op": "apply", "manifest": "namespace.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+				},
+				"_links": map[string]any{"self": map[string]any{"href": "/exercise/42/", "method": "GET"}},
+			})
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+
+	mock := &MockRunner{
+		OutputResults: map[string]string{
+			// Return a different nonce than the server expects
+			`get namespace exercise -o jsonpath={.metadata.annotations.odyssey\.dev/apply-nonce}`: "old-nonce999",
+		},
+	}
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	var output strings.Builder
+
+	err := runVerify(client, mock, &output)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+
+	out := output.String()
+	if !strings.Contains(out, "does not match") {
+		t.Errorf("expected mismatch error, got: %q", out)
+	}
+}
+
+func TestVerifyNamespaceNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{"href": "/exercise/42/", "method": "GET"},
+				},
+			})
+		case "/exercise/42/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "exercise", "id": 42, "status": "active", "created_at": "2026-04-09T14:00:00Z",
+				"apply_nonce": "server-nonce1",
+				"steps": []map[string]any{
+					{"op": "apply", "manifest": "namespace.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+				},
+				"_links": map[string]any{"self": map[string]any{"href": "/exercise/42/", "method": "GET"}},
+			})
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+
+	mock := &MockRunner{
+		OutputErr: fmt.Errorf("not found"),
+	}
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	var output strings.Builder
+
+	err := runVerify(client, mock, &output)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+
+	out := output.String()
+	if !strings.Contains(out, "Run 'ody start' first") {
+		t.Errorf("expected namespace-not-found error, got: %q", out)
+	}
+}
+
+func TestVerifyNoNonceSkipsCheck(t *testing.T) {
+	// Old exercises without apply_nonce should still verify
+	var gotPost bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{"href": "/exercise/42/", "method": "GET"},
+				},
+			})
+		case "/exercise/42/":
+			if r.Method == "POST" {
+				gotPost = true
+				json.NewEncoder(w).Encode(map[string]any{
+					"_type": "verification", "status": "failing",
+					"faults": []map[string]any{
+						{"fault_key": "x/y", "result": "FAIL", "masking": "visible"},
+					},
+				})
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "exercise", "id": 42, "status": "active", "created_at": "2026-04-09T14:00:00Z",
+				// No apply_nonce field — old exercise
+				"steps": []map[string]any{
+					{"op": "apply", "manifest": "namespace.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+					{"op": "apply", "manifest": "deployment.yaml", "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: myapp\n  namespace: exercise\n"},
+				},
+				"_links": map[string]any{"self": map[string]any{"href": "/exercise/42/", "method": "GET"}},
+			})
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+
+	mock := &MockRunner{
+		OutputResults: map[string]string{
+			"get Deployment -n exercise -o json": `{"apiVersion":"v1","items":[]}`,
+		},
+	}
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	var output strings.Builder
+
+	err := runVerify(client, mock, &output)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	if !gotPost {
+		t.Error("expected snapshot POST — nonce check should be skipped for old exercises")
 	}
 }

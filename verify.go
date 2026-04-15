@@ -159,6 +159,19 @@ func captureSnapshot(kubectl Runner, namespaces, kinds []string) (map[string]any
 	return snapshot, nil
 }
 
+// exerciseApplyNonce extracts the apply_nonce from the exercise response.
+func exerciseApplyNonce(ex *ServerResponse) string {
+	v, ok := ex.Field("apply_nonce")
+	if !ok {
+		return ""
+	}
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return s
+}
+
 // runVerify is the core implementation of ody verify.
 func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 	ex, err := fetchExercise(client)
@@ -173,6 +186,27 @@ func runVerify(client *Client, kubectl Runner, w io.Writer) error {
 	steps, err := exerciseSteps(ex)
 	if err != nil {
 		return err
+	}
+
+	// Nonce guard: check that the cluster has this exercise's manifests applied.
+	if nonce := exerciseApplyNonce(ex); nonce != "" {
+		namespaces := parseNamespaces(steps)
+		ns := "exercise"
+		if len(namespaces) > 0 {
+			ns = namespaces[0]
+		}
+		clusterNonce, err := kubectl.Output([]string{
+			"get", "namespace", ns,
+			"-o", `jsonpath={.metadata.annotations.odyssey\.dev/apply-nonce}`,
+		})
+		if err != nil {
+			fmt.Fprintf(w, "Error: namespace '%s' not found. Run 'ody start' first.\n", ns)
+			return nil
+		}
+		if strings.TrimSpace(clusterNonce) != nonce {
+			fmt.Fprintln(w, "Error: cluster state does not match active exercise. Run 'ody start' to apply.")
+			return nil
+		}
 	}
 
 	namespaces := parseNamespaces(steps)
