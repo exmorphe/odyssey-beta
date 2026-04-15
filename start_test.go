@@ -32,6 +32,9 @@ func fakeExerciseServer(t *testing.T) *httptest.Server {
 				"created_at": "2026-04-09T14:00:00Z",
 				"steps": []map[string]any{
 					{"op": "apply", "manifest": "namespace.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+					{"op": "wait", "description": "default ServiceAccount",
+						"kubectl":         []string{"get", "serviceaccount", "default", "-n", "exercise"},
+						"timeout_seconds": 30},
 					{"op": "apply", "manifest": "deployment.yaml", "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: myapp\n  namespace: exercise\n"},
 					{"op": "kubectl", "args": []string{"label", "pod", "-n", "exercise", "-l", "app=myapp", "env=test"}},
 				},
@@ -51,8 +54,8 @@ func TestStartHappyPath(t *testing.T) {
 	defer srv.Close()
 	mock := &MockRunner{
 		OutputResults: map[string]string{
-			"get namespaces -o jsonpath={.items[*].metadata.name}":  "default exercise kube-system kube-public kube-node-lease local-path-storage",
-			"get serviceaccount default -n exercise": `{"metadata":{"name":"default"}}`,
+			"get namespaces -o jsonpath={.items[*].metadata.name}": "default exercise kube-system kube-public kube-node-lease local-path-storage",
+			"get serviceaccount default -n exercise":               `{"metadata":{"name":"default"}}`,
 		},
 	}
 	kind := &MockKindManager{Exists: true}
@@ -141,8 +144,8 @@ func TestStartCreatesKindCluster(t *testing.T) {
 	defer srv.Close()
 	mock := &MockRunner{
 		OutputResults: map[string]string{
-			"get namespaces -o jsonpath={.items[*].metadata.name}":  "default kube-system kube-public kube-node-lease local-path-storage",
-			"get serviceaccount default -n exercise": `{"metadata":{"name":"default"}}`,
+			"get namespaces -o jsonpath={.items[*].metadata.name}": "default kube-system kube-public kube-node-lease local-path-storage",
+			"get serviceaccount default -n exercise":               `{"metadata":{"name":"default"}}`,
 		},
 	}
 	kind := &MockKindManager{Exists: false}
@@ -159,5 +162,60 @@ func TestStartCreatesKindCluster(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), "Creating kind cluster") {
 		t.Errorf("output = %q", output.String())
+	}
+}
+
+func TestStartHandlesWaitOp(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "root",
+				"_links": map[string]any{
+					"active_exercise": map[string]any{"href": "/exercise/42/", "method": "GET"},
+				},
+			})
+		case "/exercise/42/":
+			json.NewEncoder(w).Encode(map[string]any{
+				"_type": "exercise", "id": 42, "status": "active", "created_at": "2026-04-09T14:00:00Z",
+				"steps": []map[string]any{
+					{"op": "apply", "manifest": "namespace.yaml", "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: exercise\n"},
+					{"op": "wait", "description": "default ServiceAccount",
+						"kubectl":         []string{"get", "serviceaccount", "default", "-n", "exercise"},
+						"timeout_seconds": 30},
+					{"op": "apply", "manifest": "deployment.yaml", "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: myapp\n  namespace: exercise\n"},
+				},
+				"_links": map[string]any{"self": map[string]any{"href": "/exercise/42/", "method": "GET"}},
+			})
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+	mock := &MockRunner{
+		OutputResults: map[string]string{
+			"get namespaces -o jsonpath={.items[*].metadata.name}": "default kube-system kube-public kube-node-lease local-path-storage",
+			"get serviceaccount default -n exercise":               `{"metadata":{"name":"default"}}`,
+		},
+	}
+	kind := &MockKindManager{Exists: true}
+	cfg := Config{Server: srv.URL, AccessToken: "at-test", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	var output strings.Builder
+
+	err := runStart(client, mock, kind, &output)
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+
+	// Verify the wait op triggered an Output call for the SA
+	foundSAGet := false
+	for _, call := range mock.OutputCalls {
+		if len(call) >= 3 && call[0] == "get" && call[1] == "serviceaccount" {
+			foundSAGet = true
+		}
+	}
+	if !foundSAGet {
+		t.Error("expected kubectl get serviceaccount call from wait op")
 	}
 }

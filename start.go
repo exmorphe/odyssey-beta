@@ -26,10 +26,14 @@ var internalNamespaces = map[string]bool{
 
 // Step is a single exercise step to apply to the cluster.
 type Step struct {
-	Op       string   `json:"op"`
-	Manifest string   `json:"manifest,omitempty"`
-	Content  string   `json:"content,omitempty"`
-	Args     []string `json:"args,omitempty"`
+	Op             string   `json:"op"`
+	Manifest       string   `json:"manifest,omitempty"`
+	Content        string   `json:"content,omitempty"`
+	Args           []string `json:"args,omitempty"`
+	Description    string   `json:"description,omitempty"`
+	Kubectl        []string `json:"kubectl,omitempty"`
+	Expect         string   `json:"expect,omitempty"`
+	TimeoutSeconds int      `json:"timeout_seconds,omitempty"`
 }
 
 // KindManager manages kind clusters.
@@ -146,26 +150,35 @@ func applyStep(kubectl Runner, step Step) error {
 		return kubectl.Run([]string{"apply", "-f", "-"}, step.Content)
 	case "kubectl":
 		return kubectl.Run(step.Args, "")
+	case "wait":
+		return waitForCondition(kubectl, step)
 	default:
 		return fmt.Errorf("unknown step op: %s", step.Op)
 	}
 }
 
-// waitForDefaultSA polls until the default ServiceAccount exists in the
-// given namespace, or until timeout. Kubernetes creates it asynchronously
-// after namespace creation.
-func waitForDefaultSA(kubectl Runner, namespace string, timeout time.Duration) error {
+// waitForCondition polls a kubectl command until it succeeds (and optionally
+// produces non-empty output), or until the step timeout elapses.
+func waitForCondition(kubectl Runner, step Step) error {
+	timeout := time.Duration(step.TimeoutSeconds) * time.Second
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		_, err := kubectl.Output([]string{
-			"get", "serviceaccount", "default", "-n", namespace,
-		})
+		out, err := kubectl.Output(step.Kubectl)
 		if err == nil {
-			return nil
+			if step.Expect == "non_empty" {
+				if strings.TrimSpace(out) != "" {
+					return nil
+				}
+			} else {
+				return nil // default: exit 0 is enough
+			}
 		}
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 	}
-	return fmt.Errorf("timed out waiting for default ServiceAccount in namespace %s", namespace)
+	return fmt.Errorf("timed out waiting for %s (%ds)", step.Description, step.TimeoutSeconds)
 }
 
 // cleanNamespaces deletes all non-internal namespaces from the cluster.
@@ -221,16 +234,6 @@ func runStart(client *Client, kubectl Runner, kind KindManager, w io.Writer) err
 	for i, step := range steps {
 		if err := applyStep(kubectl, step); err != nil {
 			return fmt.Errorf("step %d (%s): %w", i+1, step.Op, err)
-		}
-		// After creating a namespace, wait for the default ServiceAccount
-		// to be provisioned before applying subsequent resources.
-		if step.Op == "apply" && containsKind(step.Content, "Namespace") {
-			ns := extractMetadataName(step.Content)
-			if ns != "" {
-				if err := waitForDefaultSA(kubectl, ns, 30*time.Second); err != nil {
-					return fmt.Errorf("step %d: %w", i+1, err)
-				}
-			}
 		}
 	}
 
