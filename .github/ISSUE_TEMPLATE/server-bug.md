@@ -23,7 +23,7 @@ labels: ["server-bug"]
 
 ### `ody verify` output (if relevant)
 
-<details><summary>paste here</summary>
+<details><summary>ody verify output</summary>
 
 ```
 paste here
