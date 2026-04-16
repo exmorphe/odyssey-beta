@@ -28,9 +28,29 @@ for you.
 
 ### Download binary
 
-Pre-built binaries will be published on GitHub Releases:
-`https://github.com/exmorphe/odyssey-beta/releases` *(not yet available —
-build from source until Releases are configured)*.
+Binaries for macOS and Linux are published on the Releases page:
+<https://github.com/exmorphe/odyssey-beta/releases>. Each Release
+includes a `checksums.txt` (SHA256) alongside the archives.
+
+**Linux amd64** (most common):
+
+```bash
+curl -L https://github.com/exmorphe/odyssey-beta/releases/latest/download/ody_linux_amd64.tar.gz \
+  | tar -xz -C ~/.local/bin ody
+chmod +x ~/.local/bin/ody
+ody --version
+```
+
+**Linux arm64:** replace `linux_amd64` with `linux_arm64`.
+
+**macOS amd64 (Intel) / arm64 (Apple Silicon):** replace `linux_amd64`
+with `darwin_amd64` or `darwin_arm64`. The first run triggers a
+Gatekeeper warning because the binary is unsigned. Right-click the
+binary in Finder → Open once, or clear the quarantine attribute:
+
+```bash
+xattr -d com.apple.quarantine ~/.local/bin/ody
+```
 
 ### Build from source
 
@@ -40,10 +60,7 @@ Requires Go 1.22+.
 git clone https://github.com/exmorphe/odyssey-beta.git
 cd odyssey-beta
 go build -o ody .
-# move ody onto your PATH, e.g.:
-#   sudo mv ody /usr/local/bin/
-# or:
-#   mv ody ~/.local/bin/
+mv ody ~/.local/bin/
 ```
 
 ## Commands
