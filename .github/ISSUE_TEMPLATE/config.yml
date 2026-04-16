@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Free-form feedback and ideas
+    url: https://github.com/exmorphe/odyssey-beta/discussions
+    about: Use Discussions for reactions, ideas, what worked, what didn't.
+  - name: Quick in-CLI feedback
+    url: https://github.com/exmorphe/odyssey-beta#feedback--bugs
+    about: Run `ody feedback "..."` for tight-loop feedback on the current exercise.
