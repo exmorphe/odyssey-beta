@@ -35,11 +35,14 @@ includes a `checksums.txt` (SHA256) alongside the archives.
 **Linux amd64** (most common):
 
 ```bash
+mkdir -p ~/.local/bin
 curl -L https://github.com/exmorphe/odyssey-beta/releases/latest/download/ody_linux_amd64.tar.gz \
   | tar -xz -C ~/.local/bin ody
 chmod +x ~/.local/bin/ody
 ody --version
 ```
+
+Make sure `~/.local/bin` is on your `PATH`.
 
 **Linux arm64:** replace `linux_amd64` with `linux_arm64`.
 
@@ -60,7 +63,7 @@ Requires Go 1.22+.
 git clone https://github.com/exmorphe/odyssey-beta.git
 cd odyssey-beta
 go build -o ody .
-mv ody ~/.local/bin/
+mkdir -p ~/.local/bin && mv ody ~/.local/bin/
 ```
 
 ## Commands

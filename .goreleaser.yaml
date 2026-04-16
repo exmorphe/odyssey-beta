@@ -33,7 +33,7 @@ checksum:
 
 changelog:
   use: git
-  sort: asc
+  sort: desc
 
 release:
   draft: false
