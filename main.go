@@ -18,6 +18,10 @@ func main() {
 		printUsage()
 		return
 
+	case "version", "--version":
+		runVersion(os.Stdout)
+		return
+
 	case "login":
 		serverURL := ""
 		if len(os.Args) >= 3 {
@@ -125,6 +129,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  status                 Show current exercise state")
 	fmt.Fprintln(os.Stderr, "  clue                   Show diagnostic clue for the active exercise")
 	fmt.Fprintln(os.Stderr, "  feedback \"<message>\"    Leave feedback on the current exercise")
+	fmt.Fprintln(os.Stderr, "  version                Print ody version and exit")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Report a bug:    https://github.com/exmorphe/odyssey-beta/issues/new/choose")
 	fmt.Fprintln(os.Stderr, "Discussions:     https://github.com/exmorphe/odyssey-beta/discussions")
