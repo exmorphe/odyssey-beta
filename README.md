@@ -121,6 +121,19 @@ Exercise #42
   Created:    09 Apr 2026 14:00 UTC
   Namespaces: exercise
   Resources:  Deployment, Service
+  Local cluster: running — run 'ody down' to tear down
+```
+
+### `ody down`
+
+Tear down the local kind cluster. Prompts for confirmation; the
+cluster and its kubeconfig entries are removed on `y` or `yes`.
+Safe to run when no cluster exists.
+
+```
+$ ody down
+Delete kind cluster "odyssey"? [y/N]: y
+Deleted kind cluster "odyssey".
 ```
 
 ### `ody feedback "<message>"`
