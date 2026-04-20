@@ -40,6 +40,7 @@ type Step struct {
 type KindManager interface {
 	ClusterExists(name string) (bool, error)
 	CreateCluster(name string) error
+	DeleteCluster(name string) error
 }
 
 // RealKindManager uses exec.Command("kind", ...) to manage clusters.
@@ -66,6 +67,14 @@ func (r *RealKindManager) CreateCluster(name string) error {
 	return nil
 }
 
+func (r *RealKindManager) DeleteCluster(name string) error {
+	cmd := exec.Command("kind", "delete", "cluster", "--name", name)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("kind delete cluster %s: %w", name, err)
+	}
+	return nil
+}
+
 // MockKindManager is a test double for KindManager.
 type MockKindManager struct {
 	Exists       bool
@@ -73,6 +82,8 @@ type MockKindManager struct {
 	ExistsErr    error
 	CreateCalled bool
 	CreateErr    error
+	DeleteCalled bool
+	DeleteErr    error
 }
 
 func (m *MockKindManager) ClusterExists(name string) (bool, error) {
@@ -83,6 +94,11 @@ func (m *MockKindManager) ClusterExists(name string) (bool, error) {
 func (m *MockKindManager) CreateCluster(name string) error {
 	m.CreateCalled = true
 	return m.CreateErr
+}
+
+func (m *MockKindManager) DeleteCluster(name string) error {
+	m.DeleteCalled = true
+	return m.DeleteErr
 }
 
 // fetchExercise GETs /api/ and follows the active_exercise link.

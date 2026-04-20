@@ -74,6 +74,12 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "down":
+		if err := runDown(&RealKindManager{}, os.Stdout, os.Stdin); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
 	case "clue":
 		client, err := loadClient(configDir)
 		if err != nil {
@@ -127,6 +133,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  start                  Fetch and apply the active exercise")
 	fmt.Fprintln(os.Stderr, "  verify                 Capture cluster state and check faults")
 	fmt.Fprintln(os.Stderr, "  status                 Show current exercise state")
+	fmt.Fprintln(os.Stderr, "  down                   Tear down the local kind cluster")
 	fmt.Fprintln(os.Stderr, "  clue                   Show diagnostic clue for the active exercise")
 	fmt.Fprintln(os.Stderr, "  feedback \"<message>\"    Leave feedback on the current exercise")
 	fmt.Fprintln(os.Stderr, "  version                Print ody version and exit")
