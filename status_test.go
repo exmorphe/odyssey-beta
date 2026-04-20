@@ -184,6 +184,9 @@ func TestStatusShowsClusterRunning(t *testing.T) {
 	if !strings.Contains(out, "running") {
 		t.Errorf("expected 'running' in output: %s", out)
 	}
+	if !strings.Contains(out, "ody down") {
+		t.Errorf("expected 'ody down' hint when cluster running: %s", out)
+	}
 }
 
 func TestStatusShowsStartHintWhenClusterMissing(t *testing.T) {

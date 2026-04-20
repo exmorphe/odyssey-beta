@@ -48,7 +48,7 @@ func runStatus(client *Client, kind KindManager, w io.Writer) error {
 		return fmt.Errorf("check cluster: %w", err)
 	}
 	if exists {
-		fmt.Fprintf(w, "  Local cluster: running\n")
+		fmt.Fprintf(w, "  Local cluster: running — run 'ody down' to tear down\n")
 	} else {
 		fmt.Fprintf(w, "  Local cluster: not started — run 'ody start'\n")
 	}
