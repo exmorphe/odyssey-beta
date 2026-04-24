@@ -63,6 +63,8 @@ func (r *RealKindManager) ClusterExists(name string) (bool, error) {
 
 func (r *RealKindManager) CreateCluster(name string) error {
 	cmd := exec.Command("kind", "create", "cluster", "--name", name)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("kind create cluster %s: %w", name, err)
 	}
