@@ -10,6 +10,10 @@ import (
 )
 
 func TestLoginHappyPath(t *testing.T) {
+	oldShould := shouldAutoOpen
+	shouldAutoOpen = func() bool { return false }
+	t.Cleanup(func() { shouldAutoOpen = oldShould })
+
 	pollCount := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {

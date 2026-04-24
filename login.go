@@ -34,10 +34,11 @@ func runLogin(serverURL string, configDir string, w io.Writer) error {
 	}
 
 	var deviceResp struct {
-		DeviceCode      string `json:"device_code"`
-		UserCode        string `json:"user_code"`
-		VerificationURI string `json:"verification_uri"`
-		Interval        int    `json:"interval"`
+		DeviceCode              string `json:"device_code"`
+		UserCode                string `json:"user_code"`
+		VerificationURI         string `json:"verification_uri"`
+		VerificationURIComplete string `json:"verification_uri_complete"`
+		Interval                int    `json:"interval"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&deviceResp); err != nil {
 		return fmt.Errorf("decode device response: %w", err)
@@ -47,7 +48,21 @@ func runLogin(serverURL string, configDir string, w io.Writer) error {
 	if verifyURL != "" && !strings.HasPrefix(verifyURL, "http") {
 		verifyURL = strings.TrimRight(serverURL, "/") + verifyURL
 	}
+
+	openURL := deviceResp.VerificationURIComplete
+	if openURL == "" {
+		openURL = deviceResp.VerificationURI
+	}
+	if openURL != "" && !strings.HasPrefix(openURL, "http") {
+		openURL = strings.TrimRight(serverURL, "/") + openURL
+	}
+
 	fmt.Fprintf(w, "Visit %s and enter code: %s\n", verifyURL, deviceResp.UserCode)
+	if openURL != "" && shouldAutoOpen() {
+		if err := openBrowser(openURL); err == nil {
+			fmt.Fprintln(w, "Opening browser…")
+		}
+	}
 
 	interval := time.Duration(deviceResp.Interval) * time.Second
 	if interval < time.Second {
