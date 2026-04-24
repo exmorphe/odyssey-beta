@@ -183,18 +183,34 @@ func waitForCondition(kubectl Runner, step Step) error {
 		timeout = 30 * time.Second
 	}
 	deadline := time.Now().Add(timeout)
+	progressing := false
 	for time.Now().Before(deadline) {
 		out, err := kubectl.Output(step.Kubectl)
 		if err == nil {
 			if step.Expect == "non_empty" {
 				if strings.TrimSpace(out) != "" {
+					if progressing {
+						fmt.Fprintln(os.Stderr)
+					}
 					return nil
 				}
 			} else {
+				if progressing {
+					fmt.Fprintln(os.Stderr)
+				}
 				return nil // default: exit 0 is enough
 			}
 		}
+		if !progressing {
+			fmt.Fprintf(os.Stderr, "Waiting for %s", step.Description)
+			progressing = true
+		} else {
+			fmt.Fprint(os.Stderr, ".")
+		}
 		time.Sleep(1 * time.Second)
+	}
+	if progressing {
+		fmt.Fprintln(os.Stderr)
 	}
 	if step.OnTimeout == "continue" {
 		fmt.Fprintf(os.Stderr,
