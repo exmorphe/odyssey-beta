@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -219,3 +220,27 @@ func TestStartHandlesWaitOp(t *testing.T) {
 		t.Error("expected kubectl get serviceaccount call from wait op")
 	}
 }
+
+func TestWaitForConditionHardTimeout(t *testing.T) {
+	mock := &MockRunner{OutputErr: errHardTimeoutStub}
+	step := Step{
+		Op: "wait", Description: "default SA",
+		Kubectl: []string{"get", "sa"}, TimeoutSeconds: 1,
+	}
+	if err := waitForCondition(mock, step); err == nil {
+		t.Fatal("expected hard timeout error, got nil")
+	}
+}
+
+func TestWaitForConditionSoftTimeout(t *testing.T) {
+	mock := &MockRunner{OutputErr: errHardTimeoutStub}
+	step := Step{
+		Op: "wait", Description: "Deployment/web-api pods",
+		Kubectl: []string{"get", "pods"}, TimeoutSeconds: 1,
+		OnTimeout: "continue",
+	}
+	if err := waitForCondition(mock, step); err != nil {
+		t.Fatalf("expected soft timeout nil, got %v", err)
+	}
+}
+var errHardTimeoutStub = errors.New("not ready")

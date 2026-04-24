@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -34,6 +35,7 @@ type Step struct {
 	Kubectl        []string `json:"kubectl,omitempty"`
 	Expect         string   `json:"expect,omitempty"`
 	TimeoutSeconds int      `json:"timeout_seconds,omitempty"`
+	OnTimeout      string   `json:"on_timeout,omitempty"`
 }
 
 // KindManager manages kind clusters.
@@ -193,6 +195,12 @@ func waitForCondition(kubectl Runner, step Step) error {
 			}
 		}
 		time.Sleep(1 * time.Second)
+	}
+	if step.OnTimeout == "continue" {
+		fmt.Fprintf(os.Stderr,
+			"note: %s not visible after %ds — the scenario fault may prevent it; continuing\n",
+			step.Description, int(timeout.Seconds()))
+		return nil
 	}
 	return fmt.Errorf("timed out waiting for %s (%ds)", step.Description, int(timeout.Seconds()))
 }
