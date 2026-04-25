@@ -26,30 +26,48 @@ for you.
 
 ## Install
 
-### Download binary
+### Quick install
 
-Binaries for macOS and Linux are published on the Releases page:
-<https://github.com/exmorphe/odyssey-beta/releases>. Each Release
-includes a `checksums.txt` (SHA256) alongside the archives.
+```bash
+curl -fsSL https://raw.githubusercontent.com/exmorphe/odyssey-beta/master/scripts/install.sh | sh
+```
 
-**Linux amd64** (most common):
+Detects your OS and CPU architecture, downloads the matching release
+from <https://github.com/exmorphe/odyssey-beta/releases>, verifies its
+SHA256 against the published `checksums.txt`, and installs to
+`~/.local/bin/ody`. Override with `ODY_VERSION=vX.Y.Z` to pin a release
+or `ODY_INSTALL_DIR=/some/path` to install elsewhere.
+
+Make sure `~/.local/bin` (or your override) is on your `PATH`. Then:
+
+```bash
+ody --version
+ody login https://k8sodyssey.com
+```
+
+### Manual install
+
+Prefer not to pipe a script to `sh`? Download the tarball directly from
+<https://github.com/exmorphe/odyssey-beta/releases>. Each release ships
+a `checksums.txt` (SHA256) you can verify against.
+
+**Linux amd64:**
 
 ```bash
 mkdir -p ~/.local/bin
 curl -L https://github.com/exmorphe/odyssey-beta/releases/latest/download/ody_linux_amd64.tar.gz \
   | tar -xz -C ~/.local/bin ody
 chmod +x ~/.local/bin/ody
-ody --version
 ```
 
-Make sure `~/.local/bin` is on your `PATH`.
+For other platforms, replace `linux_amd64` with `linux_arm64`,
+`darwin_amd64`, or `darwin_arm64`.
 
-**Linux arm64:** replace `linux_amd64` with `linux_arm64`.
-
-**macOS amd64 (Intel) / arm64 (Apple Silicon):** replace `linux_amd64`
-with `darwin_amd64` or `darwin_arm64`. The first run triggers a
-Gatekeeper warning because the binary is unsigned. Right-click the
-binary in Finder → Open once, or clear the quarantine attribute:
+**macOS quarantine note.** If you download the tarball through a
+browser (Safari, Chrome) instead of `curl`, macOS tags the binary with
+the `com.apple.quarantine` extended attribute and Gatekeeper blocks
+first run. The Quick install path avoids this — `curl` doesn't set the
+attribute. If you hit the dialog after a manual download, clear it:
 
 ```bash
 xattr -d com.apple.quarantine ~/.local/bin/ody
