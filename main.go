@@ -41,13 +41,16 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "doctor":
+		os.Exit(runDoctor(RealProbe{}, os.Stdout))
+
 	case "start":
 		client, err := loadClient(configDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		if err := runStart(client, &KubectlRunner{}, &RealKindManager{}, os.Stdout); err != nil {
+		if err := runStart(client, &KubectlRunner{}, &RealKindManager{}, RealProbe{}, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -135,6 +138,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  status                 Show current exercise state")
 	fmt.Fprintln(os.Stderr, "  down                   Tear down the local kind cluster")
 	fmt.Fprintln(os.Stderr, "  clue                   Show diagnostic clue for the active exercise")
+	fmt.Fprintln(os.Stderr, "  doctor                 Check local prerequisites (docker, kind, kubectl)")
 	fmt.Fprintln(os.Stderr, "  feedback \"<message>\"    Leave feedback on the current exercise")
 	fmt.Fprintln(os.Stderr, "  version                Print ody version and exit")
 	fmt.Fprintln(os.Stderr, "")

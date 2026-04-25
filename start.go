@@ -243,7 +243,10 @@ func cleanNamespaces(kubectl Runner, w io.Writer) error {
 }
 
 // runStart is the core implementation of ody start.
-func runStart(client *Client, kubectl Runner, kind KindManager, w io.Writer) error {
+func runStart(client *Client, kubectl Runner, kind KindManager, probe Probe, w io.Writer) error {
+	if err := preflight(probe, w); err != nil {
+		return err
+	}
 	ex, err := fetchExercise(client)
 	if err != nil {
 		return err

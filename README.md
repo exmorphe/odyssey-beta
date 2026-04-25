@@ -24,6 +24,9 @@ for you.
   <https://kind.sigs.k8s.io/docs/user/quick-start/#installation>
 - **ody** — this CLI. Download a binary or build from source (below).
 
+After installing the CLI (next section), run `ody doctor` to verify your
+local setup before continuing.
+
 ## Install
 
 ### Quick install
@@ -98,6 +101,27 @@ Logged in to https://k8sodyssey.com
 ```
 
 Credentials are saved to `~/.odyssey/config.json`.
+
+### `ody doctor`
+
+Check that local prerequisites are installed and the Docker daemon is
+reachable. Run this after installing the CLI, or any time `ody start`
+complains about something missing.
+
+```
+$ ody doctor
+docker     ✓  Docker 25.0.3
+kind       ✓  v0.22.0
+kubectl    ✓  v1.29.1 (client)
+group      ✓  user is in 'docker' group
+memory     ✓  4.0 GiB allocated to Docker
+
+All checks passed. Ready for 'ody start'.
+```
+
+`ody start` runs the same checks automatically and bails before doing any
+work if something's wrong — `doctor` is for verifying ahead of time or
+debugging a failed `start`.
 
 ### `ody start`
 

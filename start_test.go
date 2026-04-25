@@ -64,7 +64,7 @@ func TestStartHappyPath(t *testing.T) {
 	client := NewClient(cfg, t.TempDir())
 	var output strings.Builder
 
-	err := runStart(client, mock, kind, &output)
+	err := runStart(client, mock, kind, allOKProbe(), &output)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestStartNoActiveExercise(t *testing.T) {
 	client := NewClient(cfg, t.TempDir())
 	var output strings.Builder
 
-	err := runStart(client, &MockRunner{}, &MockKindManager{Exists: true}, &output)
+	err := runStart(client, &MockRunner{}, &MockKindManager{Exists: true}, allOKProbe(), &output)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestStartCreatesKindCluster(t *testing.T) {
 	client := NewClient(cfg, t.TempDir())
 	var output strings.Builder
 
-	err := runStart(client, mock, kind, &output)
+	err := runStart(client, mock, kind, allOKProbe(), &output)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestStartHandlesWaitOp(t *testing.T) {
 	client := NewClient(cfg, t.TempDir())
 	var output strings.Builder
 
-	err := runStart(client, mock, kind, &output)
+	err := runStart(client, mock, kind, allOKProbe(), &output)
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -244,3 +244,26 @@ func TestWaitForConditionSoftTimeout(t *testing.T) {
 	}
 }
 var errHardTimeoutStub = errors.New("not ready")
+
+func TestStart_PreflightFailureShortCircuits(t *testing.T) {
+	mock := &MockRunner{}
+	kind := &MockKindManager{}
+	cfg := Config{Server: "http://unused", AccessToken: "x", ExpiresAt: time.Now().Add(time.Hour)}
+	client := NewClient(cfg, t.TempDir())
+	var output strings.Builder
+
+	// MockProbe with no Paths configured -> docker/kind/kubectl all missing
+	probe := &MockProbe{OS: "linux"}
+
+	err := runStart(client, mock, kind, probe, &output)
+	if err == nil {
+		t.Fatal("expected error on preflight failure")
+	}
+	if kind.ExistsCalled || kind.CreateCalled {
+		t.Error("KindManager should not be touched when preflight fails")
+	}
+	if len(mock.RunCalls) != 0 || len(mock.OutputCalls) != 0 {
+		t.Errorf("kubectl Runner should not be called when preflight fails; got Run=%d Output=%d",
+			len(mock.RunCalls), len(mock.OutputCalls))
+	}
+}
