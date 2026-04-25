@@ -19,6 +19,9 @@ builds:
       - -X main.version={{.Version}}
       - -X main.commit={{.ShortCommit}}
       - -X main.date={{.Date}}
+    hooks:
+      post:
+        - cmd: sh -c 'if [ "{{ .Os }}" = "darwin" ]; then rcodesign sign "{{ .Path }}"; fi'
 
 archives:
   - id: ody

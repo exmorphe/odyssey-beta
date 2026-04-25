@@ -21,6 +21,15 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Install rcodesign
+        run: |
+          set -eu
+          VERSION=0.29.0
+          ASSET="apple-codesign-${VERSION}-x86_64-unknown-linux-musl"
+          curl -fsSL "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${VERSION}/${ASSET}.tar.gz" \
+            | sudo tar -xz --strip-components=1 -C /usr/local/bin "${ASSET}/rcodesign"
+          rcodesign --version
+
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
